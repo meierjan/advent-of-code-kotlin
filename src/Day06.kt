@@ -1,43 +1,31 @@
-data class LanternFish(var counter: Int = 8) {
-	fun tick(): LanternFish? {
-		val fish: LanternFish? = if (counter == 0) {
-			counter = 6
-			LanternFish()
-		} else {
-			counter--
-			null
-		}
+import java.math.BigInteger
 
-		return fish
+
+fun calculateForFishAndDays(ages: List<Int>, days: Int): Long {
+	val maxAge = 9
+
+	var ageGroups = MutableList<Long>(maxAge) { 0 }
+
+	ages.forEach { ageGroups[it]++ }
+
+	(1..days).forEach {
+		val pregnant = ageGroups.first()
+		ageGroups = ageGroups.drop(1).toMutableList()
+		ageGroups[6] += pregnant
+		ageGroups.add(8, pregnant)
 	}
-}
 
+	return ageGroups.sum()
+}
 
 fun main() {
 
-	val fish = readInput("Day06_test").first()
+	val ages = readInput("Day06").first()
 		.split(",")
 		.map { it.toInt() }
-		.map { LanternFish(it) }
-		.toMutableList()
 
-	for(i in 1..80) {
-		val newFishSpawned = fish.mapNotNull { it.tick() }
-		fish.addAll(newFishSpawned)
-	}
 
-	println(fish.size)
+	val fishCount = calculateForFishAndDays(ages, 256)
 
-	val fish2 = readInput("Day06").first()
-		.split(",")
-		.map { it.toInt() }
-		.map { LanternFish(it) }
-		.toMutableList()
-
-	for(i in 1..80) {
-		val newFishSpawned = fish2.mapNotNull { it.tick() }
-		fish2.addAll(newFishSpawned)
-	}
-
-	println(fish2.size)
+	println(fishCount)
 }
