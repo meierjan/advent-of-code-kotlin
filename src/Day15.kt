@@ -1,4 +1,5 @@
 import java.lang.Long.min
+import java.util.*
 import kotlin.time.ExperimentalTime
 import kotlin.time.measureTime
 
@@ -34,9 +35,8 @@ data class V(
 private fun getNeighbors(y: Int, x: Int) =
     listOf(V(y + 1, x), V(y, x + 1))
 
-fun Solve_Dijkstra(input: List<String>): Result {
+fun Solve_Dijkstra(cost: List<List<Int>>): Result {
 
-    val cost = input.map { it.toList().map { it.digitToInt() } }
 
     val xSize = cost.first().size
     val ySize = cost.size
@@ -77,18 +77,38 @@ fun Solve_Dijkstra(input: List<String>): Result {
 
 @OptIn(ExperimentalTime::class)
 fun main() {
-    val testInput = readInput("Day15_test")
+//    val testInput = readInput("Day15_test")
     val realInput = readInput("Day15")
 
+    val cost = realInput.map { it.toCharArray().map { it.digitToInt() } }
+    val widenedCostMatrix = cost.widenMatrix(5)
+
     val time = measureTime {
-        val (_, dist) = Solve_Dijkstra(realInput)
-        dist.dumpLong()
+        val (_, dist) = Solve_Dijkstra(widenedCostMatrix)
+        println("Cost:" + dist.last().last())
     }
 
     println("Took $time ms")
 
-    val cost = testInput.map { it.toList().map { it.digitToInt() } }
 
+}
+
+fun List<List<Int>>.widenMatrix(times: Int) =
+    (0 until times).flatMap { yRepetition ->
+        this.mapIndexed { y, xList ->
+            (0 until times).flatMap { xRepetition ->
+                xList.map { it.increaseCost(xRepetition + yRepetition) }
+            }
+        }
+    }
+
+fun Int.increaseCost(by: Int): Int {
+    val newCost = this + by
+    return if (newCost > 9) {
+        newCost - 9
+    } else {
+        newCost
+    }
 }
 
 fun List<List<V?>>.dumpVertices() {
@@ -112,5 +132,4 @@ fun List<List<Int>>.dumpInt() {
         println()
     }
 }
-
 
