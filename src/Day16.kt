@@ -1,4 +1,24 @@
+import PacketType.EQUAL_TO
+import PacketType.GREATER_THAN
+import PacketType.LESS_THAN
+import PacketType.LITERAL
+import PacketType.MAXIMUM
+import PacketType.MINIMUM
+import PacketType.PRODUCT
+import PacketType.SUM
 import java.util.*
+
+object PacketType {
+    const val LITERAL = 4
+    const val SUM = 0
+    const val PRODUCT = 1
+    const val MINIMUM = 2
+    const val MAXIMUM = 3
+    const val GREATER_THAN = 5
+    const val LESS_THAN = 6
+    const val EQUAL_TO = 7
+}
+
 
 fun Char.toBit(): List<Boolean> =
     when (this) {
@@ -26,17 +46,17 @@ fun <E> Queue<E>.poll(amount: Int): List<E> =
         this.poll()
     }
 
+fun Collection<Boolean>.toLong() =
+    this.map { if (it) 1 else 0 }.joinToString("").toLong(2)
+
 fun Collection<Boolean>.toInt() =
     this.map { if (it) 1 else 0 }.joinToString("").toInt(2)
 
 
 // type 4
-fun parseLiteral(buffer: Queue<Boolean>) {
-    var parsedBits = 6 // type-id & version
-
+fun parseLiteral(buffer: Queue<Boolean>): Long {
     val binaryNumber = mutableListOf<Boolean>()
     while (buffer.isNotEmpty()) {
-        parsedBits += 5
         val packet = buffer.poll(5)
         // is 1 if it's not the last package
         val packetHeader = packet.first()
@@ -49,20 +69,33 @@ fun parseLiteral(buffer: Queue<Boolean>) {
             break
         }
     }
-    val bitesToDrop = parsedBits % 4
-//    buffer.poll(bitesToDrop)
-//    println(binaryNumber.toInt())
+    return binaryNumber.toLong()
+
 }
 
-//
-fun parseOperator(buffer: Queue<Boolean>) {
+fun List<Long>.executeOperatorType(typeId: Int): Long =
+    when (typeId) {
+        SUM -> this.sum()
+        PRODUCT -> this.reduce { acc, l -> acc * l }
+        MINIMUM -> this.minOf { it }
+        MAXIMUM -> this.maxOf { it }
+        GREATER_THAN -> if(this[0] > this[1]) 1 else 0
+        LESS_THAN -> if(this[1] > this[0] ) 1 else 0
+        EQUAL_TO -> if (this[0] == this[1]) 1 else 0
+        else -> throw UnsupportedOperationException("Type $typeId is not supported")
+    }
+
+fun parseOperator(buffer: Queue<Boolean>, operatorType: Int): Long {
     val lengthTypeId = buffer.poll()
     // 0 -> 15-bit number  is representing a number of bit's in the sub-package
+
+    val parsedValues = mutableListOf<Long>()
+
     if (lengthTypeId) {
         val numberOfSubPackages = buffer.poll(11).toInt()
 
-        (1..numberOfSubPackages).forEach {
-            parse(buffer)
+        (1..numberOfSubPackages).forEach { _ ->
+            parsedValues.add(parse(buffer))
         }
 
     } else {
@@ -70,15 +103,17 @@ fun parseOperator(buffer: Queue<Boolean>) {
         val subPackagePayload = LinkedList(buffer.poll(numOfBitsInSubPackage))
 
         while (subPackagePayload.isNotEmpty()) {
-            parse(subPackagePayload)
+            parsedValues.add(parse(subPackagePayload))
         }
 
     }
 
+    return parsedValues.executeOperatorType(operatorType)
+
 }
 
 
-fun parse(input: String) {
+fun parse(input: String): Long {
 
 
     val binaryInput = input.toCharArray()
@@ -87,29 +122,38 @@ fun parse(input: String) {
     val buffer: Queue<Boolean> = LinkedList(binaryInput)
 
 
-    parse(buffer)
+    return parse(buffer)
 }
 
 var versionSum = 0
-private fun parse(buffer: Queue<Boolean>) {
+private fun parse(buffer: Queue<Boolean>): Long {
 
     val version = buffer.poll(3).toInt()
     versionSum += version
+
+    @Suppress("MoveVariableDeclarationIntoWhen")
     val typeId = buffer.poll(3).toInt()
 
-    when (typeId) {
-        4 -> parseLiteral(buffer)
-        else -> parseOperator(buffer)
+    val result = when (typeId) {
+        LITERAL -> parseLiteral(buffer)
+        SUM -> parseOperator(buffer, typeId)
+        PRODUCT -> parseOperator(buffer, typeId)
+        MINIMUM -> parseOperator(buffer, typeId)
+        MAXIMUM -> parseOperator(buffer, typeId)
+        GREATER_THAN -> parseOperator(buffer, typeId)
+        LESS_THAN -> parseOperator(buffer, typeId)
+        EQUAL_TO -> parseOperator(buffer, typeId)
+        else -> throw UnsupportedOperationException("TypeId '$typeId' is not supported")
     }
+
+
+    return result
+
 }
 
 
 fun main() {
     val input = readInput("Day16").first()
-
-//parse("A0016C880162017C3686B18A3D4780")
-    parse(input)
-
-    println(versionSum)
+    println(parse(input))
 
 }
