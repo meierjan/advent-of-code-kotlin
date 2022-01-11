@@ -54,7 +54,7 @@ private fun simulate(velocity: Velocity, targetArea: TargetArea): Trajectory? {
     var currentPosition = startPoint
     var currentVelocity = velocity
 
-    while (currentPosition.y >= targetArea.yEnd) {
+    while (currentPosition.y >= targetArea.yStart) {
 
         currentPosition = Point(
             x = currentPosition.x + currentVelocity.forwardX,
@@ -87,13 +87,15 @@ fun main() {
     val targetArea = targetAreaFromString(inputString)
 
 
-    val allMatchingTrajectories = (0..400).flatMap { y ->
-        (0..400).mapNotNull { x ->
+    val allMatchingTrajectories = (-1000..1000).flatMap { y ->
+        (-1000..1000).mapNotNull { x ->
             simulate(Velocity(x, y), targetArea)
         }
     }
 
     println(allMatchingTrajectories.maxOf { it.trajectory.maxOf { it.y } })
+    println(allMatchingTrajectories.toSet().size)
+
 
 }
 
