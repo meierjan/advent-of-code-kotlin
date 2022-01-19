@@ -7,6 +7,13 @@ sealed class SnailFishNumber {
 
     abstract var parent: SnailFishNumber?
 
+    fun copy() : SnailFishNumber =
+        when(this) {
+            is Number -> this.copy()
+            // haha, I really dislike this but I am lazy
+            is Pair -> parseSailfishNumber(this.toString())
+        }
+
     data class Number(
         var number: Long,
         override var parent: SnailFishNumber? = null
@@ -43,7 +50,7 @@ operator fun SnailFishNumber.plus(b: SnailFishNumber?): SnailFishNumber {
     )
     additionResult.left.parent = additionResult
     additionResult.right.parent = additionResult
-    return additionResult
+    return additionResult.reduce()
 
 }
 
@@ -149,7 +156,7 @@ private fun reduceSnailfishNumberBySplit(current: SnailFishNumber): Boolean {
         // split
         current is Number -> {
             val matches = current.number >= 10
-            if(matches) {
+            if (matches) {
                 val parent = current.parent as Pair
                 val splitPair = current.split()
                 if (parent.right === current) {
@@ -198,16 +205,51 @@ fun parseSailfishNumber(input: String): SnailFishNumber =
     }
 
 
+data class DebugSum(
+    val a: SnailFishNumber,
+    val b: SnailFishNumber,
+    val reducedSum: SnailFishNumber,
+    val magnitude: Long
+) {
+    companion object {
+        fun from(
+            a:SnailFishNumber,
+            b: SnailFishNumber
+        ) : DebugSum {
+            return DebugSum(
+                a = a.copy(),
+                b = b.copy(),
+                reducedSum = (a.copy() + b.copy()),
+                magnitude = (a.copy() + b.copy()).magnitude()
+            )
+        }
+
+    }
+}
 
 fun main() {
 
 
-    val x = readInput("Day18")
+    val snailfishNumbers = readInput("Day18")
         .map { parseSailfishNumber(it) }
-        .reduce { acc, snailFishNumber -> (acc + snailFishNumber).reduce() }
 
-    println(x.magnitude())
+    val snailfishNumberCount = snailfishNumbers.size
 
+
+    val maxValue = (0 until snailfishNumberCount).flatMap { y ->
+        (0 until snailfishNumberCount).flatMap { x ->
+            if (x != y) {
+                listOf(
+                    DebugSum.from(snailfishNumbers[x], snailfishNumbers[y]),
+                    DebugSum.from(snailfishNumbers[y], snailfishNumbers[x])
+                )
+            } else {
+                listOf()
+            }
+        }
+            }
+
+    println(maxValue.maxByOrNull { it.magnitude })
 
 }
 
